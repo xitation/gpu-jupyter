@@ -66,7 +66,7 @@ echo "
 #################### Dependency: jupyter/base-image ########################
 ############################################################################
 " >> $DOCKERFILE
-cat $STACKS_DIR/base-notebook/Dockerfile | grep -v 'BASE_CONTAINER' | grep -v 'FROM $ROOT_CONTAINER' >> $DOCKERFILE
+cat $STACKS_DIR/base-notebook/Dockerfile | grep -v 'BASE_CONTAINER' | grep -v 'FROM $ROOT_CONTAINER' | grep -v "LABEL maintainer" | grep -v "LABEL authors" >> $DOCKERFILE
 
 # copy files that are used during the build:
 cp $STACKS_DIR/base-notebook/jupyter_server_config.py .build/
@@ -82,14 +82,14 @@ echo "
 ################# Dependency: jupyter/minimal-notebook #####################
 ############################################################################
 " >> $DOCKERFILE
-cat $STACKS_DIR/minimal-notebook/Dockerfile | grep -v BASE_CONTAINER >> $DOCKERFILE
+cat $STACKS_DIR/minimal-notebook/Dockerfile | grep -v BASE_CONTAINER | grep -v "LABEL maintainer" | grep -v "LABEL authors" >> $DOCKERFILE
 
 echo "
 ############################################################################
 ################# Dependency: jupyter/scipy-notebook #######################
 ############################################################################
 " >> $DOCKERFILE
-cat $STACKS_DIR/scipy-notebook/Dockerfile | grep -v BASE_CONTAINER >> $DOCKERFILE
+cat $STACKS_DIR/scipy-notebook/Dockerfile | grep -v BASE_CONTAINER | grep -v "LABEL maintainer" | grep -v "LABEL authors" >> $DOCKERFILE
 
 # install Julia and R if not excluded or spare mode is used
 if [[ "$no_datascience_notebook" != 1 ]]; then
@@ -98,7 +98,7 @@ if [[ "$no_datascience_notebook" != 1 ]]; then
   ################ Dependency: jupyter/datascience-notebook ##################
   ############################################################################
   " >> $DOCKERFILE
-  cat $STACKS_DIR/datascience-notebook/Dockerfile | grep -v BASE_CONTAINER >> $DOCKERFILE
+  cat $STACKS_DIR/datascience-notebook/Dockerfile | grep -v BASE_CONTAINER | grep -v "LABEL maintainer" | grep -v "LABEL authors" >> $DOCKERFILE
 else
   echo "Set 'no-datascience-notebook' = 'python-only', not installing the datascience-notebook with Julia and R."
 fi
@@ -110,7 +110,7 @@ echo "
 ########################## Dependency: gpulibs #############################
 ############################################################################
 " >> $DOCKERFILE
-cat src/Dockerfile.gpulibs >> $DOCKERFILE
+cat src/Dockerfile.gpulibs | grep -v "LABEL maintainer" | grep -v "LABEL authors" >> $DOCKERFILE
 
 # install useful packages if not excluded or spare mode is used
 if [[ "$no_useful_packages" != 1 ]]; then
@@ -119,7 +119,7 @@ if [[ "$no_useful_packages" != 1 ]]; then
   ############################ Useful packages ###############################
   ############################################################################
   " >> $DOCKERFILE
-  cat src/Dockerfile.usefulpackages >> $DOCKERFILE
+  cat src/Dockerfile.usefulpackages | grep -v "LABEL maintainer" | grep -v "LABEL authors" >> $DOCKERFILE
 else
   echo "Set 'no-useful-packages', not installing stuff within src/Dockerfile.usefulpackages."
 fi
