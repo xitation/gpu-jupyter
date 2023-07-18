@@ -21,32 +21,46 @@ RUN conda install --quiet --yes \
 # Installation via conda leads to errors installing cudatoolkit=11.1
 # RUN pip install --no-cache-dir torch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1  && \
 #     torchviz==0.0.2 --extra-index-url https://download.pytorch.org/whl/cu116
-RUN set -ex \
- && buildDeps=' \
-    torch>=1.13.1 \
-    torchvision>=0.14.1 \
-    torchaudio>=0.13.1 \
-    torchviz>=0.0.2 \
- && pip install --no-cache-dir $buildDeps --extra-index-url https://download.pytorch.org/whl/cu118 \
- && fix-permissions "${CONDA_DIR}" \
- && fix-permissions "/home/${NB_USER}"
+
+#pip --no-cache-dir install torchviz==0.0.2 && \
+RUN pip --no-cache-dir install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 && \
+    pip --no-cache-dir install torchviz && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
 
 USER root
-ENV CUDA_PATH=/opt/conda/
+#ENV CUDA_PATH=/opt/conda/
 
 # Install nvtop to monitor the gpu tasks
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends cmake libncurses5-dev libncursesw5-dev git && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# note that nvtop has a dependancy on libnvidia-compute-418 libnvidia-compute-430 libnvidia-compute-535 nvtop
+# and that when libnvidia-compute- is installed within docker running inside WSL2 with CUDA support, it will cause the following error:
+# docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error running hook #0: error running hook: exit status 1, stdout: , stderr: Auto-detected mode as 'legacy'
+# nvidia-container-cli: mount error: file creation failed: /var/lib/docker/overlay2/133710662aae058316e40aac35a2625ac48a8176abccb981117bdf57d67a490e/merged/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1: file exists: unknown.
+# For now we won't install nvtop as a result
+# RUN apt-get update && \
+#     #apt-get install -y --no-install-recommends nvtop cmake libncurses5-dev libncursesw5-dev git && \
+#     apt-get install -y --no-install-recommends cmake libncurses5-dev libncursesw5-dev git && \
+#     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # reinstall nvcc with cuda-nvcc to install ptax
-USER $NB_UID
-RUN conda install -c nvidia cuda-nvcc -y && \
-    conda clean --all -f -y && \
-    fix-permissions $CONDA_DIR && \
-    fix-permissions /home/$NB_USER
+# USER $NB_UID
+# RUN conda install -c nvidia cuda-nvcc -y && \
+#     conda clean --all -f -y && \
+#     fix-permissions $CONDA_DIR && \
+#     fix-permissions /home/$NB_USER
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends cuda-nvcc-11-8 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-USER root
-RUN ln -s /opt/conda/bin/ptxas /usr/bin/ptxas
+# USER root
+# RUN ln -s /opt/conda/bin/ptxas /usr/bin/ptxas
+
+# Add /opt/conda/lib to ldlibray path
+# To Fix tensorflow run issue:  "/usr/lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.26' not found" 
+# the libstdc++.so.* library in the conda path has support for GLIBCXX_3.4.26 unlike the installed version that comes via APT.
+# also so that apex can find /opt/conda/lib/python3.10/site-packages/torch/lib/libc10.so
+RUN echo "/opt/conda/lib" > /etc/ld.so.conf.d/conda.conf && \
+    echo "/opt/conda/lib/python3.10/site-packages/torch/lib" >> /etc/ld.so.conf.d/conda.conf && \
+    ldconfig
 
 USER $NB_UID
